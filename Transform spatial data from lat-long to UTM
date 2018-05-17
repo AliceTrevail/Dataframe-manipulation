@@ -1,0 +1,29 @@
+#### The following code transforms positions from latitude and longitude to UTM
+
+# Install and load packages
+
+if(!"sp" %in% installed.packages())
+install.packages("sp")
+library(sp)
+ 
+if(!"rgdal" %in% installed.packages())
+install.packages("rgdal")
+library(rgdal)
+
+
+# create example data frame, with an extra column, in this case ID
+# here, you can have as many 'extra' columns as you have data, e.g. time etc...
+xy <- data.frame(ID = 1:2, long = c(-5.6, -4.2), lat = c(48, 50))
+
+# convert to a spatial points data frame by specifying co-ordinate columns:
+coordinates(xy) <- c("long", "lat") ### here always put x then y
+
+# define your current projection as lat/long
+proj4string(xy) <- CRS("+proj=longlat +datum=WGS84")
+
+# now to transform to UTM, using the relevant zone for the region
+res <- spTransform(xy, CRS("+proj=utm +zone=30 ellps=WGS84"))   ### zone=30 : UK
+
+# convert back to a data frame = 
+df <- as.data.frame(res)
+head(df)
