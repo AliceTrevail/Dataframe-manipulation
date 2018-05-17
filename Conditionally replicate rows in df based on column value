@@ -1,0 +1,14 @@
+#### The following code creates duplicates of rows of a data frame (df), conditionally based on values in one column (y).
+#### In this case, creates 3 duplicates when values in column 'y' = 1.
+
+df[rep(which(df$y == "1"), 3),]
+
+# df$y == "1"  : rows where y = 1
+# which(df$y == "1")  : indexes the row numbers where y = 1
+# rep(which(df$y == "1"), 3)  : repeats the row numbers where y = 1, 3 times
+# df[rep(which(df$y == "1"), 3),]  : returns rows of data frame where y=1, duplicated 3 times
+
+#### to include all rows in original data frame, including duplicates:
+
+rbind(df[rep(which(df$y == "1") ,3),], df[df$y != "1",])
+# df[df$y != "1",]  : returns rows of data frame where y is not 1
