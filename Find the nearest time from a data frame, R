@@ -1,0 +1,28 @@
+#### The following code finds the closest time from a data frame for a time of interest
+#### This could be used, for example, to extract the nearest tide time from tide tables
+
+nearest.time <- function(x, y, key = "posixct"){y[which.min(abs(difftime(x, y[,key]))),key]}
+ 
+# x = Time and date of interest, in POSIXct format
+# y = data frame containing column of times to search from, in POSIXct format
+# key = name of column containing POSIXct date time in data frame y, default = "posixct"
+
+
+#### Example implementation: 
+
+# create test data:
+ 
+time1 <- as.POSIXct("27/06/2016 19:48:35", format="%d/%m/%Y %H:%M", origin="1970-01-01", tz = "GMT")
+posixct <- c("27/06/2016 10:49:00", "27/06/2016 23:20:00", "28/06/2016 11:50:00")
+tides <- c(1:3)
+HWtimes <- as.data.frame(cbind(tides, posixct))
+#convert to POSIXct format
+HWtimes$posixct <- as.POSIXct(HWtimes$posixct, format="%d/%m/%Y %H:%M", origin="1970-01-01", tz = "GMT")
+ 
+# 1: return nearest time in HWtimes to time1
+ 
+nearest.time(time1, HWtimes, "posixct")
+ 
+# 2: return nearest time to all rows in a dataframe, df, into column NearestTime
+ 
+df$NearestTime <- as.POSIXct(mapply(function(x) nearest.time(x, HWtimes), df$posixct), origin="1970-01-01", tz = "GMT")
