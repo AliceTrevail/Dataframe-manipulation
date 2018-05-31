@@ -1,0 +1,79 @@
+### Import tide data & match to tracking files ###
+
+###### install and load packages ########
+
+if(!"dplyr" %in% installed.packages())
+  install.packages("dplyr")
+library(dplyr)
+
+if(!"readr" %in% installed.packages())
+  install.packages("readr")
+library(readr)
+
+###### functions ########
+
+# function to open text file saved from poltips software of high and low waters
+import.POLTIPS <- function(x){
+  
+  # read in text file
+  a <- read_delim(x, " ",                                                  # read in .txt file x, deliminated by white space
+                  col_names = FALSE,                                       # dont use first row as column names
+                  col_types = cols(X2 = col_skip(), X3 = col_character(),  # skip column X2, read column X3 (time) as character
+                                   X4 = col_skip(), X5 = col_skip(),       # skip columns X4 and X5
+                                   X6 = col_skip(), X7 = col_number()),    # skip column X6, read column X7 (tide height) as number
+                  skip = 1)                                                # skip row one of plain text
+  
+  # convert to relevant format
+  b <- as.data.frame(a)                         # convert to data frame
+  colnames(b) <- c("Date", "Time", "Height")    # give relevant column names
+  
+  # name tides by high or low water. Poltips generates data for sequential tides so can use binary nature of data
+  b$Tide <- "NA"                                                  # create empty column of tide type
+  b$Tide[1] <- ifelse(b$Height[1] < b$Height[2], "LW", "HW")      # for row one, if height is lower than row 2 = "LW", else "HW"
+  for (i in 2:NROW(b)){                                           # loop for remaining rows
+    b$Tide[i] <- ifelse(b$Height[i] < b$Height[i-1], "LW", "HW")  # if height lower than row above = "LW", else "HW"
+  }
+  
+  # return new data frame
+  b
+}
+
+# function to return nearest time between date x and high water dataframe
+nearest.time <- function(x, y, key = "posixct"){y[which.min(abs(difftime(x, y[,key]))),key]}
+
+
+### **************************************** ##########
+
+### Import data #####
+
+# import tide data
+Tide_Pu2010 <- import.POLTIPS("E:/Data/Tide/PuffinTideTimes2010.txt")
+
+# import tracking data
+Kit <- read.csv("E:/Data/GPS Kittiwake ALLcolonies/Ki.csv", as.is = T)
+
+
+### **************************************** ##########
+
+### Match tracking data with nearest high water ######
+
+# subset tide data to HW only
+HW_Pu2010 <- Tide_Pu2010[Tide_Pu2010$Tide == "HW",]
+
+# create posixct DateTime columns
+HW_Pu2010$posixct <- as.POSIXct(paste(HW_Pu2010$Date, HW_Pu2010$Time), format="%d/%m/%Y %H:%M", origin="1970-01-01", tz = "GMT")
+Kit$posixct <- as.POSIXct(paste(Kit$Date, Kit$Time), format="%d/%m/%Y %H:%M", origin="1970-01-01", tz = "GMT")
+
+# new column of time of nearest high water
+Kit$NearestHW <- as.POSIXct(mapply(function(x) nearest.time(x, HW_Pu2010), Kit$posixct), origin="1970-01-01", tz = "GMT")
+
+# column of time around nearest high water
+Kit$TimeAroundHW <- difftime(Kit$posixct, Kit$NearestHW, units = "hours")
+Kit$TimeAroundHW <- as.numeric(Kit$TimeAroundHW)
+
+
+### **************************************** ##########
+
+##### Save file  ######
+
+write.csv(Kit, "E:/Data/GPS Kittiwake ALLcolonies/Ki_tide.csv", row.names = F)
